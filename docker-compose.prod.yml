@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  auth:
+    build:
+      context: ./src/auth
+    container_name: ticket-selling-auth
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+      - JWT_KEY=${JWT_KEY:-dev-jwt-key}
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_AUTH_QUEUE_URL=${SQS_AUTH_QUEUE_URL:-}
+      - ENABLE_AUTH_WORKER=${ENABLE_AUTH_WORKER:-true}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL must be set to ElastiCache endpoint}
+      - REDIS_PREFIX=auth
+
+  tickets:
+    build:
+      context: ./src/tickets
+    container_name: ticket-selling-tickets
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_TICKETS_QUEUE_URL=${SQS_TICKETS_QUEUE_URL:-}
+      - ENABLE_TICKETS_WORKER=${ENABLE_TICKETS_WORKER:-true}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL must be set to ElastiCache endpoint}
+      - REDIS_PREFIX=tickets
+
+  orders:
+    build:
+      context: ./src/orders
+    container_name: ticket-selling-orders
+    ports:
+      - "3003:3000"
+    environment:
+      - PORT=3000
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_ORDER_EVENTS_QUEUE_URL=${SQS_ORDER_EVENTS_QUEUE_URL:-}
+      - SQS_ORDERS_SERVICE_QUEUE_URL=${SQS_ORDERS_SERVICE_QUEUE_URL:-}
+      - SQS_EXPIRATION_QUEUE_URL=${SQS_EXPIRATION_QUEUE_URL:-}
+      - ENABLE_ORDERS_WORKER=${ENABLE_ORDERS_WORKER:-true}
+      - EXPIRATION_DELAY_SECONDS=${EXPIRATION_DELAY_SECONDS:-60}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL must be set to ElastiCache endpoint}
+      - REDIS_PREFIX=orders
+
+  payments:
+    build:
+      context: ./src/payments
+    container_name: ticket-selling-payments
+    ports:
+      - "3004:3000"
+    environment:
+      - PORT=3000
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_ORDER_EVENTS_QUEUE_URL=${SQS_ORDER_EVENTS_QUEUE_URL:-}
+      - SQS_PAYMENT_EVENTS_QUEUE_URL=${SQS_PAYMENT_EVENTS_QUEUE_URL:-}
+      - ENABLE_SQS_CONSUMER=${ENABLE_SQS_CONSUMER:-true}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL must be set to ElastiCache endpoint}
+      - REDIS_PREFIX=payments
+
+  expiration:
+    build:
+      context: ./src/expiration
+    container_name: ticket-selling-expiration
+    ports:
+      - "3005:3000"
+    environment:
+      - PORT=3000
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_EXPIRATION_QUEUE_URL=${SQS_EXPIRATION_QUEUE_URL:-}
+      - SQS_EXPIRATION_EVENTS_QUEUE_URL=${SQS_EXPIRATION_EVENTS_QUEUE_URL:-}
+      - ENABLE_EXPIRATION_WORKER=${ENABLE_EXPIRATION_WORKER:-true}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL must be set to ElastiCache endpoint}
+      - REDIS_PREFIX=expiration
+
+  client:
+    build:
+      context: ./src/client
+    container_name: ticket-selling-client
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - AWS_REGION=${AWS_REGION:-}
+      - SQS_CLIENT_QUEUE_URL=${SQS_CLIENT_QUEUE_URL:-}
+      - ENABLE_CLIENT_WORKER=${ENABLE_CLIENT_WORKER:-true}

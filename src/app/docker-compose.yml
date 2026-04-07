@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  auth:
+    image: ticket-selling/auth:local
+    ports:
+      - "3001:3000"
+  tickets:
+    image: ticket-selling/tickets:local
+    ports:
+      - "3002:3000"
+  orders:
+    image: ticket-selling/orders:local
+    ports:
+      - "3003:3000"
+  payments:
+    image: ticket-selling/payments:local
+    ports:
+      - "3004:3000"
+  expiration:
+    image: ticket-selling/expiration:local
+    ports:
+      - "3005:3000"
+  client:
+    image: ticket-selling/client:local
+    ports:
+      - "3000:3000"

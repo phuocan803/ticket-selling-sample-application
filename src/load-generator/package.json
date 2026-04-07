@@ -1,0 +1,15 @@
+{
+    "name": "ticket-selling-load-generator",
+    "version": "0.1.0",
+    "private": true,
+    "main": "publish-sqs-load.js",
+    "scripts": {
+        "start": "node publish-sqs-load.js",
+        "lint": "node --check publish-sqs-load.js",
+        "test": "node --check publish-sqs-load.js",
+        "build": "node --check publish-sqs-load.js"
+    },
+    "dependencies": {
+        "@aws-sdk/client-sqs": "^3.782.0"
+    }
+}

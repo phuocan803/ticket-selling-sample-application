@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ticket-selling-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  auth:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - JWT_KEY=dev-jwt-secret-key
+      - ENABLE_AUTH_WORKER=false
+    depends_on:
+      - redis
+
+  tickets:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENABLE_TICKETS_WORKER=false
+    depends_on:
+      - redis
+
+  orders:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENABLE_ORDERS_WORKER=false
+      - EXPIRATION_DELAY_SECONDS=60
+    depends_on:
+      - redis
+
+  payments:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENABLE_SQS_CONSUMER=false
+    depends_on:
+      - redis
+
+  expiration:
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENABLE_EXPIRATION_WORKER=false
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
