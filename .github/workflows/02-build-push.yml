@@ -1,0 +1,70 @@
+name: "02 · Build & Push Microservices Images"
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Custom image tag (defaults to git SHA)"
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  build-services:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, client, tickets, orders, payments, expiration]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-actions-build-${{ matrix.service }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: tag
+        run: |
+          TAG="${{ inputs.image_tag || github.sha }}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "image=${{ steps.login-ecr.outputs.registry }}/ticket-selling-${{ matrix.service }}:${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: src/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.tag.outputs.image }}
+            ${{ steps.login-ecr.outputs.registry }}/ticket-selling-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          build-args: |
+            SERVICE=${{ matrix.service }}
+
+      - name: Summary
+        run: echo "Pushed ${{ steps.tag.outputs.image }}" >> $GITHUB_STEP_SUMMARY
